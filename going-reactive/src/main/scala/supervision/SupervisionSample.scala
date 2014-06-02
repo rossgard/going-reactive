@@ -40,12 +40,6 @@ object SupervisionSample {
     }
     // override default to kill all children during restart
     override def preRestart(cause: Throwable, msg: Option[Any]) {}
-
-    override def preStart(): Unit = super.preStart()
-
-    override def postStop(): Unit = super.postStop()
-
-    override def postRestart(reason: Throwable): Unit = super.postRestart(reason)
   }
 
   class Child extends Actor {
