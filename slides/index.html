@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>reveal.js - The HTML Presentation Framework</title>
+
+		<meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+		<meta name="author" content="Hakim El Hattab">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<link rel="stylesheet" href="css/reveal.css">
+		
+		<link rel="stylesheet" href="css/theme/webstep.css" id="theme">
+
+		<!-- For syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- If the query includes 'print-pdf', use the PDF print sheet -->
+		<script>
+			document.write( '<link rel="stylesheet" href="css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+
+	</head>
+
+
+	<body>
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+			<section>
+				<section>
+					<h2>Going reactive with Akka</h2>
+					<p>
+						<small>Webstep faggruppemøte - funksjonelle språk</small>
+					</p>
+					<img src="images/W gønn_ikon.png" />
+				</section>
+				<section>
+					<h2>Agenda</h2>
+					<ol>
+						<li>Actor-modellen</li>
+						<li>Workshop del 1</li>
+						<li>Feilhåndtering</li>
+						<li>Workshop del 2</li>
+					</ol>
+						<aside class="notes">
+						Starter med slides for å gå i gjennom Actor-modellen og feilhåndtering. Avslutter med workshop.	
+					</aside>
+				</section>
+			</section>
+			<section>
+				<section>
+					<h2>Del 1- Actor-modellen</h1>
+					<img src="images/actor-model.png" />
+				</section>
+				<section>
+					<h3>Historie - noen viktige punkter</h3>
+					<ul>
+						<li>Carl Hewitt et al. 1973: Actors, modell for forskning på kunstig intelligens</li>
+						<li>Gul Agha, 1986: ACTORS: A Model of Concurrent Computation in Distributed Systems</li>
+						<li>Ericsson, 1995: første kommersielle plattform som gjør bruk av Erland/OTP</li>
+						<li>Phillip Haller, 2006: implementert i standardbiblioteket i Scala</li>
+						<li>Jonas Bonér, 2009: Akka</li>
+					</ul>
+					
+					<aside class="notes">
+						- 1973: Hewitt, Bishop og Steiger. Actors: En modell for å formulere forskning på kunstig intelligens.
+						
+						- 1986: En av Hewitts studenter. Doktorgrad: Hvordan skrive programmer med Actors, hvordan ressonere etc. Han beskrev blant annet "communication patterns". Hvordan gjøre bruk av Actors for å løse problemer. 
+
+						Samme år startet Ericsson med å utvikle språket Erlang. Erlang er et rent funksjonelt språk hvor "concurrency modellen" er basert på Actors.
+						
+						- AXD301, "flaggskip-prosjektet" til Ericsson - 99.999999999 3 sek nedetid på 100 år. (OTP - Open Telecom Platform)
+						
+						- Actor-modellen ble lagt til standardbiblioteket i Scala
+						
+						- Akka, Actor-rammeverk på JVMen, med Java og Scala apier. --> Actor-modellen tilgjengelig for flere.
+					</aside>
+				</section>
+				<section>
+					<h3>Tråder (theads)</h3>
+					<h6>CPUene blir ikke raskere lenger, men de blir "bredere"</h6>
+						<ul>
+							<li>Flere kjerner på en brikke som deler minne</li>
+							<li>Virtuelle kjerner som deler en fysisk kjerne</li>
+						</ul>
+					<br/>
+					<br/>
+					<div class="fragment fade-in">
+						<h6>Programmer som kjører må gjøre bruk av disse kjernene</h6>
+						<ul>
+							<li>Kjøre flere programmer i parallell (multi-tasking)</li>
+							<li>Kjøre flere deler av samme program i parallell (multi-threading)</li>
+						</ul>
+					</div>
+					
+					<aside class="notes">
+						Litt om hva som motiverer bruken av Actors.
+
+						Mulit-tasking: I bruk siden første versjon av Unix.
+						
+						Multi-threading: Flere tråder skal løse et problem sammen. Hvis en ser for seg flere
+						personer. Lett å gå i beina på hverandre. Synchronized, volatile... Synkronisering og blocking,
+						lett å innføre dead-lock.
+					</aside>
+					</section>
+				<section>
+					<h3>Actor-modellen</h3>
+					<p>
+						Actor-modellen består av objekter og beskriver hvordan disse objektene samhandler.
+					</p>
+					<br/><br/><br/>
+					<div style="width:600px;margin-left:150px">
+							<figure style="float:left">
+								<img src="images/ask.jpeg" style="width:200px;height:300px"/>
+								<figcaption>
+  								<p class="fragment fade-in">
+									<small>Hva er klokken?</small>
+								</p>
+								</figcaption>
+							</figure>
+							<figure style="float:right">
+								<img src="images/answer.jpeg" style="width:200px;height:300px" />
+									<figcaption>
+									<p class="fragment fade-in">
+										<small>12:05</small>
+									</p>
+									</figcaption>
+							</figure>
+					</div>
+					
+					<aside class="notes">
+						Person 1: Ønsker å vite hva klokken er
+						Person 2: Tenker litt og så svarer.
+
+						Vi overfører informasjon med ved å snakke: Første person sender melding til den andre personen som svarer tilbake med en ny melding.
+
+						Basert på meldinger. Og meldinger tar tid. Tenk på actors som personer som snakker med hverandre. Når personer kommuniserer bruker de ikke tankelesing. 
+					</aside>
+				</section>
+					<section>
+					<h3>Hva er en Actor?</h3>
+				<ul>
+					<li>Et objekt med en identitet</li>
+					<li>Har oppførsel</li>
+					<li>Samhandler ved å sende askynkrone meldinger</li>
+				</ul>
+				<br/><br/><br/>
+					<div style="width:600px;margin-left:150px">
+							<figure style="float:left">
+								<img src="images/ask.jpeg" style="width:200px;height:300px"/>
+								<figcaption>
+									<p>
+										<small>actorA</small>
+									</p>
+								</figcaption>
+							</figure>
+							<h2 style="float:left;margin-left:60px;margin-top:100px">&#8594;</h2>
+							<figure style="float:right">
+								<img src="images/answer.jpeg" style="width:200px;height:300px" />
+								<figcaption>
+									<p>
+										<small>actorB</small>
+									</p>
+								</figcaption>
+							</figure>
+					</div>
+				<aside class="notes">
+					Mer formelt.
+					Actor A vil sende en melding til Actor B. Med en gang meldingen er sendt, så kan actor A gjøre andre ting. Behandling av meldingen skjer på et senere tidspunkt av systemet som Actor B kjører i.
+				</aside>
+				</section>
+
+				<section data-background="#000000">
+					<h3>Actor trait</h3>
+					<pre>
+						<code data-trim class="scala">
+type Receive = PartialFunction[Any, Unit]
+
+trait Actor {
+  def receive: Receive 
+  ...
+}
+							</code>
+					</pre>
+						<aside class="notes">
+							En abstrakt metode: Receive er en en ParitalFunction fra Any -> Unit.
+							Kan ta i mot alle type meldinger, men returnerer ingenting. 
+
+							En partiell funksjon er en funksjon som tar ett argument og som bare er definert for visse input-verdier.	
+
+							F.eks 1 / x, ikke definert for alle verdier av x, ikke for 0 f.eks.		
+						</aside>
+				</section>
+				<section data-background="#000000">
+					<h3>Eksempel på en Actor</h3>
+					<pre>
+						<code data-trim class="scala">
+class Counter extends Actor {
+  var count = 0
+  def receive = {
+    case "incr" => count += 1
+  }
+}
+
+						</code>
+					</pre>
+<h6 class="fragment fade-in">Kan ikke se at CounterActor har tilstand. Får ikke noe svar tilbake.</h6>
+
+				<pre class="fragment fade-in">
+					<code data-trim class="scala">
+class Counter extends Actor {
+  var count = 0
+  def receive = {
+    case "incr" => count += 1
+    case "get" => sender ! count
+  }
+}
+
+						</code>
+					</pre>
+
+	<aside class="notes">
+	- Actors kan sende meldinger til adresser de kjenner (gjøres via ActorRef).
+	  I Erlang må en eksplisitt sende med sender Actor, men i Akka så gjøre dette automatisk (er implisitt)
+
+	- Det er ikke mulig å direkte aksessere en actors oppførsel: Bare meldinger kan sendes til kjente adresser.
+	- Når en Actor opprettes, så får en samtidig tak i adressen.
+
+	- Alle actors kjenner sin egen adresse.
+	</aside>
+</section>
+				<section data-background="#000000">
+					<h3>Actor Context</h3>
+					<pre>
+						<code data-trim class="scala">							
+trait ActorContext {
+  def become(behavior: Receive, discardOld: Boolean = true): Unit
+  def unbecome(): Unit
+  ...
+}
+
+trait Actor {
+  implicit val context: ActorContext
+}
+						</code>
+					</pre>
+					<aside class="notes">
+					Actor type beskriver oppførsel, eksekvering gjøres av ActorContext. 
+					Become, unbecome (kan sees på som en Stack).
+					DiscardOld: må holde øye med minneforbruk hvis true.
+					</aside>
+				</section>
+				<section data-background="#000000">
+				<h3>Endre oppførsel med become/unbecome</h3>
+			<pre><code>
+class Counter extends Actor {
+  var count = 0
+  def receive = {
+    case "incr" => count += 1
+    case "get" => sender ! count
+  }
+}
+			</code></pre>
+				<pre class="fragment roll-in">
+						<code data-trim class="scala">							
+class Counter extends Actor {
+  def counter(n: Int): Receive = {
+    case "incr" => context.become(counter(n + 1))
+    case "get" => sender ! n
+  }
+
+  def receive = counter(0)
+}
+						</code>
+					</pre>
+					<aside class="notes">
+						State endres bare et sted.
+						Tilstand blir scopet til aktiv oppførsel.
+					</aside>
+				</section>
+				<section data-background="#000000">
+					<h3>Starte og stoppe Actors</h3>
+						<pre>
+						<code data-trim class="scala">							
+trait ActorContext {
+  def actorOf(p: Props, name: String): ActorRef
+  def stop(a: ActorRef): Unit
+  ...	
+}
+						</code>
+					</pre>
+					<aside class="notes">
+						Actors opprettes av actors. Stop blir oftest brukt i forbindelse med "self".
+						Danner et naturlig hierarki.
+
+						Props - beskrivelse av hvordan en Actor skal opprettes.
+					</aside>
+				</section>
+				<section data-background="#000000">
+					<h3>An Actor Application</h3>
+					<pre>
+						<code data-trim class="scala">							
+class Main extends Actor {
+  val counter = context.actorOf(Props[Counter], "counter")
+
+  counter ! "incr"
+  counter ! "incr"
+  counter ! "incr"
+  counter ! "get"
+
+  def receive = {
+    case count: Int =>
+    println(s"count was $count")
+    context.stop(self)
+  }
+}
+						</code>
+					</pre>
+						<aside class="notes">
+						Actors opprettes av actors. Stop blir oftest brukt i forbindelse med "self".
+						Danner et naturlig hierarki.
+
+						Props - beskrivelse av hvordan en Actor skal opprettes.
+					</aside>
+				</section>
+
+					<section>
+						<h3>Actor - behandling av meldinger</h3>
+						<h6>En Actor er entrådet</h6>
+						<ul>
+							<li>Meldinger mottas sekvensielt</li>
+							<li>Eventuell endring av oppførsel gjøres før neste melding behandles</li>
+							<li>Det å prosessere en melding er en atomær enhet</li>
+						</ul>
+						<br/>
+						<br/>
+						<h6>Blocking erstattes av køing av meldinger</h6>
+						<br/>
+							<img src="images/mailbox.png" />
+					</section>
+
+					<section>
+					<h3>The Actor Model of Computation</h3>
+					<h6>Ved mottak av en melding kan en Actor gjøre en kombinasjon av:</h6>
+					
+					<ul>
+						<li>Sende meldinger</li>
+						<li>Opprette actors</li>
+						<li>Bestemme oppførsel for neste melding</li>
+					</ul>		
+						<aside class="notes">
+						Dette er egentlig alt. 
+					</aside>
+				</section>
+
+					
+				<section>
+					<h3>Workshop - del 1</h3>
+					<h6>For å gjennomføre første del av workshop:</h6>
+					<ul>
+						<li>git clone https://github.com/rossgard/going-reactive</li>
+						<li>Start workshop ved å kjøre ./activator ui</li>
+						<li>Implementer CoffeeShop.scala slik at testene i CoffeShopSpec.scala kjører</li>
+						</ul>
+					</section>
+				</section>
+
+			</section>
+
+			<section>
+				<section>
+					<h2>Del 2 - Feilhåndtering</h2>
+				</section>
+				<section>
+				<h2>Garantert leveranse av meldinger</h2>
+					<div style="width:600px;margin-left:150px">
+							<figure style="float:left">
+								<img src="images/ask.jpeg" style="width:200px;height:300px"/>
+								<figcaption>
+  								<p class="fragment fade-in" data-fragment-index="1">
+									<small>Vær så snill og gjør</small>
+								</p>
+								<p class="fragment fade-in 2" data-fragment-index="4">
+									<small>Hørte du?</small>								
+								</p>
+								</figcaption>
+							</figure>
+							<figure style="float:right">
+								<img src="images/answer.jpeg" style="width:200px;height:300px" />
+									<figcaption>
+									<span class="fragment fade-in">
+										<span class="fragment fade-out">
+											<small>ok</small>
+										</span>
+									</span>
+									</figcaption>
+							</figure>
+					</div>
+					<br/>
+					<div style="clear:both" class="fragment roll-in" data-fragment-index="5">
+					<h6>Leveransegaranti</h6>
+						<ul>
+							<li>at-most-once</li>
+							<li>at-least-once</li>
+							<li>exactly-once</li>
+						</ul>
+						</div>
+
+						<aside class="notes">
+						Kan bruke dette som inspirasjon.
+						1. Enkleste, trenger ikke å ta vare på state
+						2. State på senderside
+						3. State hos sender og mottaker
+
+						Unik korrelasjonsId. Sende på nytt helt til en får ack.
+					</aside>
+				</section>
+				<section>
+				<h3>Feilhåndtering i asynkrone systemer</h3>
+				<h6>Hva gjør en hvis et unntak oppstår?</h6>
+
+				<img src="images/supervision.png" />
+				<h6>Supervision</h6>	
+				<aside class="notes">
+					Hvor skal en sende feil? Exception -> Reify as messages
+					Som å jobbe i team.
+
+					En kan f.eks:		
+					- Tillate x antall restarter
+					- Tilltate x antall restarter i et visst tidsintervall
+
+					ActorRef er det samme etter restart
+
+					Dekkes av det som kalles Supervision.
+					Supervision og actor hierarki er det samme.
+				</aside>
+				</section>
+			<section data-background="#000000">
+			<h3>Supervision eksempel</h3>
+				<pre><code>
+import akka.actor.OneForOneStrategy
+import akka.actor.SupervisorStrategy._
+import scala.concurrent.duration._
+ 
+override val supervisorStrategy =
+  OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 minute) {
+    case _: ArithmeticException      => Resume
+    case _: NullPointerException     => Restart
+    case _: IllegalArgumentException => Stop
+    case _: Exception                => Escalate
+  }					
+				</code></pre>
+					<aside class="notes">
+					Default:
+- ActorInitializationException stopper feilende barn
+- ActorKilledException stopper feilende barn
+- Exception restarter feilende barn
+- Andre typer Throwable eskaleres til foreldre actor
+					</aside>
+				</section>
+
+				<section>
+				<h3>Actor livssykel</h3>
+				<img src="images/lifecycle.png" />
+
+					<aside class="notes">
+				1. Foreldre kaller context.actorOf
+				2. Actor-maskineriet sørger for at en ny instans av actor opprettes (kalles konstruktør).
+				3. Callback preStart kalles (før første melding prosesseres. Her kan det allerede ligge meldinger klare).
+				4. Feiler, når actorContext som sjekker med supervisor. La oss si at avgjørsel blir restart.
+				5. På eksisterende instans -> preRestart og så termineres instansen.
+				6. Ny instans lages.
+				7. Her kalles hook postRestart (ingen meldinger prosesseres mellom fail og postRestart). Meldingen som forårsaket feilen, prosesseres ikke på nytt.
+				8. Stop kalles, og deretter siste "hook", postStop, og så termineres actor.
+				Blå strek: Ingen nye meldinger prosessers
+				Rød strek: Actor state fjernes.
+				</aside>
+				</section>
+
+				<section data-background="#000000">
+				<h3>Actor livssykel - "hooks"</h3>
+				<pre><code>
+trait Actor {
+  def preStart(): Unit = {}
+	
+  def preRestart(reason: Throwable, message: Option[Any]): Unit = {
+    context.children foreach (context.stop(_)) // default behavior
+    postStop()
+  }
+
+  def postRestart(reason: Throwable): Unit = {
+    preStart()
+  }
+
+  def postStop(): Unit = {}
+    ...
+}	
+				</code></pre>
+
+				<aside class="notes">
+				- Restart er ikke synlig utenfra. Det eneste en kan se er stop.
+				- Etter en stopper en actor, kommer det ikke flere meldinger fra actoren
+				- For på kunne skille mellom stopp og kommunikasjonsproblemer -> Death-watch.
+				</aside>
+				</section>
+
+				<section data-background="#000000">
+				<h3>Lifecycle Monitoring - Death watch</h3>
+				<pre>
+					<code>
+trait ActorContext {
+  def watch(target: ActorRef): ActorRef
+  def unwatch(target: ActorRef): ActorRef
+  ...
+}
+</code>
+</pre>
+
+<aside class="notes">
+    Vil motta Terminated(target) message når target stopper.
+    Vil ikke motta direkte meldinger fra target etter
+    Etter unwatch, vil ikke motta Terminated (ingen race cond).
+
+</aside>
+</section>
+
+<section>
+<h3>The Error kernel</h3>
+	<h6>Ta vare på viktig data nær toppen, deleger risiko til løvnoder</h6>
+<ul>
+	<li>Restarter er rekursive</li>
+	<li>Restarter skjer oftere nær løvnodene</li>
+	<li>Unngå restart av Actors med viktig state</li>
+</ul>
+
+<img src="images/actor-model.png" />
+
+<aside class="notes">
+    Husk at barn restartes hvis foreldre restartes.
+    Kan være vanskelig å reskape state.
+
+</aside>
+
+</section>
+	
+				<section>
+					<h3>Workshop - del 2</h3>
+					<h6>For å gjennomføre første del av workshop:</h6>
+					<ul>
+						<li>git clone https://github.com/rossgard/going-reactive</li>
+						<li>Start workshop ved å kjøre ./activator ui</li>
+						<li>...</li>
+						</ul></section></section></li>
+				
+
+  </div>
+</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.min.js"></script>
+
+		<script>
+
+			// Full list of configuration options available here:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: false,
+				slideNumber: true,
+
+				theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+				transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+
+				// Optional libraries used to extend on reveal.js
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+					{ src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
