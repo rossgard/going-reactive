@@ -1,0 +1,124 @@
+<body>
+<div>
+    <h2>Del-1: Actor-modellen</h2>
+    Dette er første del av to deler. Poenget her er å bli kjent med selve actor-modellen.
+
+    <p>
+        Din oppgave er å implementere funksjonalitet i actor
+        <a href="#code/src/main/scala/coffeeshop/CoffeeShop.scala" class="shortcut">CoffeeShop.scala</a>
+        slik at testene i <a href="#code/src/test/scala/coffeeshop/CoffeeShopSpec.scala" class="shortcut">CoffeeShopSpec.scala</a> kjører.
+    </p>
+
+    <h3>Eksempel på en Actor</h3>
+    En actor som øker en teller.
+    <pre>
+		<code>
+class CounterActor extends Actor {
+  def counter(n: Int): Receive = {
+    case "incr" => context.become(counter(n + 1))
+    case "get" => sender ! n
+  }
+  def receive = counter(0)
+}
+        </code>
+    </pre>
+
+    <h4>Kjøre som main</h4>
+    Actoren over kan kjøres fra f.eks. IntelliJ eller Eclipse slik:
+	<pre>
+		<code>
+class Main extends Actor {
+  val counter = context.actorOf(
+  Props[CounterActor], "counter")
+
+  counter ! "incr"
+  counter ! "incr"
+  counter ! "incr"
+  counter ! "get"
+
+  def receive = {
+    case count: Int =>
+    println(s"count was $count")
+    context.stop(self)
+  }
+}
+        </code>
+    </pre>
+
+    Kjør som Java-applikasjon og legg inn:
+    <ul>
+        <li>Main class: <i>akka.Main</i></li>
+        <li>Program arguments: <i>[klassenavn]</i>, f.eks. <i>[examples.Main]</i></li>
+    </ul>
+
+    <h3>Om logging</h3>
+    Hvis du ønsker å logge meldinger som sendes til en Actor så kan du legge på LoggingReceive:
+    <pre>
+        <code>
+def counter(n: Int): Receive = LoggingReceive {
+...
+}
+        </code>
+    </pre>
+    og legge inn følgende som VM-argumenter ved kjøring: <i>-Dakka.loglevel=DEBUG -Dakka.actor.debug.receive=on</i>
+
+    <p>
+   Dette vil sette loggnivå til <i>debug</i> og samtidig logge alle meldinger som mottas av en actor.
+    </p>
+
+    <p>
+    Husk å importer akka.event.LoggingReceive
+    </p>
+
+    <p>Hvis du trenger generell logging, så kan du gjøre bruk av trait <code>ActorLogging.</code></p>
+
+    <p>
+       <h3>Dokumentasjon for Akka</h3>
+    <a href="http://doc.akka.io/docs/akka/snapshot/scala/actors.html">Actors</a></li></p>
+</div>
+
+<div>
+    <h2>Del 2 - feilhåndtering</h2>
+    <p>Dette er siste del av to deler. Poenget her er å bli kjent med feilhåndtering og Supervision.</p>
+
+    <h3>Supervision</h3>
+    <p>
+    Implementer <a href="#code/src/main/scala/supervision/SupervisionSample.scala" class="shortcut">SupervisionSample.scala</a> slik at
+    <a href="#code/src/test/scala/supervision/SupervisionSampleSpec.scala" class="shortcut">SuperVisionSampleSpec.scala</a> kjører.
+    </p>
+    Tips:
+    <ul>
+        <li>SuperVisionStrategy</li>
+        <li>DeathWatch</li>
+        <li>Override lifecycle hooks</li>
+    </ul>
+
+    <h3>2. Fault tolerance sample</h3>
+    <p>
+    I <a href="#code/src/main/scala/faulttolerance/FaultToleranceSample.scala" class="shortcut">FaultToleranceSample.scala</a> finner du et
+    komplett eksempel som gjør bruk av timeouts, restarter, death watch m.m. Kjør og sett deg inn i koden og eksperimenter gjerne med egne endringer og utvidelser.
+    </p>
+    <img src="tutorial/faulttolerance.png" />
+    <h4>Normal flyt</h4>
+    <ol>
+        <li><code>Listener</code> starter arbeidet</li>
+        <li><code>Worker</code> sender <code>Do</code>-meldinger til seg selv med jevne mellomrom</li>
+        <li>Ved mottak av <code>Do</code>-meldinger, gir <code>Worker</code> beskjed til <code>CounterService</code>
+        om å øke telleren tre ganger.</li>
+        <li><code>Increment</code>-melding sendes videre til <code>Counter</code>, som oppdaterer teller-variabel og sender gjeldende verdi til <code>Storage</code></code></li>
+        <li><code>Worker</code> sender en <code>CurrentCount</code>-melding til <code>CounterService</code></li>
+        <li>Ved mottak av <code>CurrentCount</code> så sendes <code>Progress</code>-melding til <code>Listener</code></li>
+   </ol>
+
+    <h4>Flyt ved feil</h4>
+    <ol>
+        <li><code>Storage</code> kaster <code>StorageException</code></li>
+        <li><code>CounterService</code> er <i>supervisor</i> for <code>Storage</code>, som restartes ved <code>StorageException</code></li>
+        <li><code>Storage</code> feiler fortsatt og restares på nytt</li>
+        <li>Etter 3 restarter innen 5 sekund, så stoppes <code>Storage</code> av <code>CounterService</code> som er <i>supervisor</i>.</li>
+        <li><code>CounterService</code> holder også øye med <code>Storage</code> <i>(DeathWatch)</i> og mottar derfor <code>Terminated</code>-melding når den stoppes</li>
+        <li><code>CounterService</code> legger til rette for å sende en fremtidig <code>Reconnect</code>-melding til seg selv</li>
+        <li>Ved mottak av <code>Reconnect</code>-melding, så opprettes et nytt <code>Storage</code> og det gis beskjed til <code>Counter</code> om å bruke nytt <code>Storage</code></li>
+    </ol>
+</div>
+</body>
