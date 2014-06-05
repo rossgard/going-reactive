@@ -40,7 +40,11 @@ with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
 
       child2 ! new Exception("CRASH") // escalate failure
       expectTerminated(child2)
+    }
+  }
 
+  "A supervisor" must {
+    "apply the chosen strategy for its child - not stop children" in {
       val supervisor2 = system.actorOf(Props[Supervisor2], "supervisor2") // should not stop children
 
       supervisor2 ! Props[Child] // create new child
